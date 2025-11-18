@@ -6,6 +6,7 @@
     <div v-if="isNewsOpen">
         <p>Lorem lorem dolor dolor</p>
         <app-button v-if="!wasRead" color="primary" @action="mark">Прочесть новость</app-button>
+        <app-news-list></app-news-list>
     </div>
   </div>
 </template>
@@ -13,6 +14,7 @@
 <script>
 
 import AppButton from './AppButton.vue'
+import AppNewsList from './AppNewsList.vue'
 
 export default {
   props: {
@@ -65,7 +67,8 @@ export default {
     // }
   },
   components: {
-    AppButton
+    AppButton,
+    AppNewsList
   }
 }
 </script>
