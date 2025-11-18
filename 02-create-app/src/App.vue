@@ -2,41 +2,70 @@
   <div>
     <div class="container pt-1">
       <div class="card">
-        <h2>Slots</h2>
+        <async-component></async-component>
+        <h2>Динамические и асинхронные компоненты</h2>
+        <app-button
+          :color="oneColor"
+          @action="active = 'one'"
+          >One</app-button
+        >
+        <app-button
+          :color="twoColor"
+          @action="active = 'two'"
+          >Two</app-button
+        >
       </div>
-      <app-list>
-        <template #default="{idx, iter}">
-          <span style="color: red">
-            <strong>{{idx + 1}}</strong>
-            Item: {{iter}}</span>
-        </template>
-      </app-list>
-      <app-block>
-        <p>Это самый важный текст для нового блока</p>
-        <template v-slot:header>
-         <h3>Это заголовок!</h3>
-        </template>
-        <template #footer>
-          <hr />
-          <small>Footer</small>
-        </template>
-      </app-block>
+      <keep-alive>
+        <component :is="componentName"></component>
+      </keep-alive>
     </div>
   </div>
 </template>
 
 <script>
-import AppBlock from './AppBlock.vue'
-import AppList from './AppList.vue'
+import AppButton from './AppButton.vue'
+import AppTextOne from './AppTextOne.vue'
+import AppTextTwo from './AppTextTwo.vue'
 
 export default {
+  data () {
+    return {
+      active: 'one'
+    }
+  },
+  mounted () {
+    // setTimeout(() => {
+    //   this.componentName = 'new comp name'
+    // }, 1500)
+  },
+  methods: {
+  },
+  computed: {
+    // componentName () {
+    //   return 'app-text-' + this.active
+    // },
+    componentName: {
+      get () {
+        return 'app-text-' + this.active
+      },
+      set (value) {
+        console.log('componentName', value)
+      }
+    },
+    oneColor () {
+      return this.active === 'one' ? 'primary' : ''
+    },
+    twoColor () {
+      return this.active === 'two' ? 'primary' : ''
+    }
+  },
   components: {
-    AppBlock,
-    AppList
+    AppButton,
+    AppTextOne,
+    AppTextTwo
   }
 }
 </script>
 
 <style scoped>
-
 </style>
