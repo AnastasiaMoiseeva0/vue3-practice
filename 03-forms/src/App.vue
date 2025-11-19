@@ -1,117 +1,109 @@
 <template>
   <div class="container">
-    <form class="card" @submit.prevent="submitHandler">
-      <h1>Анкета на Vue разработчика!</h1>
-      <app-input
-        placeholder="Введите имя"
-        :error="errors.name"
-        label="Как тебя зовут?"
-        v-model="name"
-      ></app-input>
+    <app-alert :alert="alert" @close="alert = null"></app-alert>
+    <form class="card" @submit.prevent="createPerson">
+      <h2>Работа с базой данных</h2>
       <div class="form-control">
-        <label for="age">Выбери возраст</label>
-        <input type="number" id="age" v-model="age" max="70">
+        <label for="name">Введите имя</label>
+        <input type="text" id="name" v-model.trim="name" />
       </div>
-
-      <div class="form-control">
-        <label for="city">Твой город</label>
-        <select id="city" v-model="city">
-          <option value="spb">Санкт-Петербург</option>
-          <option value="msk">Москва</option>
-          <option value="kzn">Казань</option>
-          <option value="nsk">Новосибирск</option>
-        </select>
-      </div>
-
-      <div class="form-checkbox">
-        <span class="label">Готов к переезду в Токио?</span>
-        <div class="checkbox">
-          <label><input type="radio" v-model="relocate" name="trip" value="yes"/> Да</label>
-        </div>
-
-        <div class="checkbox">
-          <label><input type="radio" v-model="relocate" name="trip" value="no"/> Нет</label>
-        </div>
-      </div>
-
-      <div class="form-checkbox">
-        <span class="label">Что знаешь во Vue?</span>
-        <div class="checkbox">
-          <label><input type="checkbox" v-model="skills" name="skills" value="vuex"/> Vuex</label>
-        </div>
-        <div class="checkbox">
-          <label><input type="checkbox" v-model="skills" name="skills" value="cli"/> Vue CLI</label>
-        </div>
-        <div class="checkbox">
-          <label><input type="checkbox" v-model="skills" name="skills" value="router"/> Vue Router</label>
-        </div>
-      </div>
-      <div class="form-checkbox">
-        <span class="label">Правила нашей компании</span>
-        <div class="checkbox">
-          <label><input type="checkbox" v-model="agree"/> С правилами согласен</label>
-        </div>
-      </div>
-      <button type="submit" class="btn primary">Отправить</button>
+      <button class="btn primary" :disabled="name.length === 0">
+        Создать человека
+      </button>
     </form>
+    <app-loader v-if="loading"></app-loader>
+    <app-people-list
+      v-else
+      :people="people"
+      @load="loadPeople"
+      @remove="removePerson"
+    ></app-people-list>
   </div>
 </template>
 
 <script>
-import AppInput from './AppInput.vue'
+import AppPeopleList from './AppPeopleList.vue'
+import axios from 'axios'
+import AppAlert from './AppAlert.vue'
+import AppLoader from './AppLoader.vue'
 
 export default {
   data () {
     return {
       name: '',
-      age: 23,
-      city: 'spb',
-      relocate: 'yes',
-      skills: [],
-      agree: false,
-      errors: {
-        name: null
-      }
+      people: [],
+      alert: null,
+      loading: false
     }
   },
+  mounted () {
+    this.loadPeople()
+  },
   methods: {
-    formIsValid () {
-      let isValid = true
+    async createPerson () {
+      const response = await fetch('https://vue-with-http-7db17-default-rtdb.firebaseio.com/people.json', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          firstName: this.name
+        })
+      })
 
-      if (this.name.length === 0) {
-        this.errors.name = 'Введите ваше имя'
-        isValid = false
-      } else {
-        this.errors.name = null
-      }
+      const firebaseData = await response.json()
 
-      return isValid
+      this.people.push({
+        firstName: this.name,
+        id: firebaseData.name
+      })
+      this.name = ''
     },
-    submitHandler () {
-      if (this.formIsValid()) {
-        console.group('Form data')
-        console.log('Name:', this.name)
-        console.log('Age:', this.age)
-        console.log('City:', this.city)
-        console.log('To Tokyo:', this.relocate)
-        console.log('Skills:', this.skills)
-        console.log('Agree:', this.agree)
-        console.groupEnd()
+    async loadPeople () {
+      try {
+        this.loading = true
+        const { data } = await axios.get('https://vue-with-http-7db17-default-rtdb.firebaseio.com/people.json')
+        if (!data) {
+          throw new Error('Список людей пуст')
+        }
+        this.people = Object.keys(data).map((key) => {
+          return {
+            id: key,
+            ...data[key]
+          }
+        })
+        this.loading = false
+      } catch (e) {
+        this.alert = {
+          type: 'danger',
+          title: 'Ошибка!',
+          text: e.message
+        }
+        this.loading = false
+        console.log(e.message)
+      }
+    },
+    async removePerson (id) {
+      try {
+        const person = this.people.find(person => person.id === id).firstName
+        await axios.delete(`https://vue-with-http-7db17-default-rtdb.firebaseio.com/people/${id}.json`)
+        this.people = this.people.filter(person => person.id !== id)
+        this.alert = {
+          type: 'primary',
+          text: `Пользователь с именем ${person} был удален`,
+          title: 'Успешно!'
+        }
+      } catch (e) {
+
       }
     }
   },
   components: {
-    AppInput
+    AppPeopleList,
+    AppAlert,
+    AppLoader
   }
 }
 </script>
 
-<style>
-  .form-control small {
-    color: darkred;
-  }
-
-  .form-control.invalid input {
-    border-color: darkred;
-  }
-</style>
+<style></style>
